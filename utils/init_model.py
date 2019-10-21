@@ -23,7 +23,7 @@ def scale_hyperparams(input_layer, hidden_layers, output_layer,
     
     all_except_input_layers = chain(hidden_layers, [output_layer])
     
-    #is_gradient_normalized = _test_gradient_normalization(optimizer)
+    is_gradient_normalized = _test_gradient_normalization(optimizer)
     
     if scaling_mode == 'default':
         weight_factor = 1
@@ -51,6 +51,10 @@ def scale_hyperparams(input_layer, hidden_layers, output_layer,
         if hasattr(layer, 'bias'):
             if layer.bias is not None:
                 raise NotImplementedError
+                
+    if not is_gradient_normalized:
+        for param_group in optimizer.param_groups[:1]:
+            param_group['lr'] /= lr_factor
                 
     for param_group in optimizer.param_groups[1:]:
         param_group['lr'] *= lr_factor
