@@ -28,19 +28,22 @@ def scale_hyperparams(input_layer, hidden_layers, output_layer,
     if scaling_mode == 'default':
         weight_factor = 1
         lr_factor = 1
+        lr_factor_input = 1. / lr_factor
     
     elif scaling_mode == 'preserve_initial_logit_std':
         weight_factor = 1
         lr_factor = width_factor ** (-0.5)
+        lr_factor_input = 1. / lr_factor
         
     elif scaling_mode == 'preserve_logit_mean':
         weight_factor = width_factor ** (-0.5)
         lr_factor = width_factor ** (-1.)
+        lr_factor_input = 1. / lr_factor
         
-    elif scaling_mode == 'preserve_dynamics':
-        # likely, incorrect; don't use it
+    elif scaling_mode == 'preserve_initial_logit_std_and_logit_mean':
         weight_factor = 1
         lr_factor = width_factor ** (-1.)
+        lr_factor_input = width_factor ** 0.5
         
     else:
         raise ValueError("Unknown scaling mode: {}".format(scaling_mode))
@@ -54,7 +57,7 @@ def scale_hyperparams(input_layer, hidden_layers, output_layer,
                 
     if not is_gradient_normalized:
         for param_group in optimizer.param_groups[:1]:
-            param_group['lr'] /= lr_factor
+            param_group['lr'] *= lr_factor_input
                 
     for param_group in optimizer.param_groups[1:]:
         param_group['lr'] *= lr_factor
