@@ -42,8 +42,9 @@ def scale_hyperparams(input_layer, hidden_layers, output_layer,
         
     elif scaling_mode == 'preserve_initial_logit_std_and_logit_mean':
         weight_factor = 1
-        lr_factor = width_factor ** (-1.)
-        lr_factor_input = width_factor ** 0.5
+        lr_factor = width_factor ** (-0.5)
+        #lr_factor_input = width_factor ** 0.5
+        lr_factor_input = 1. / lr_factor
         
     else:
         raise ValueError("Unknown scaling mode: {}".format(scaling_mode))
