@@ -5,8 +5,45 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+def get_normalization_layer(width, normalization, dim):
+    if normalization == 'none':
+        layer = nn.Identity()
+        
+    elif normalization.startswith('batch'):
+        if normalization == 'batch':
+            affine = False
+        elif normalization == 'batch_affine':
+            affine = True
+        else:
+            raise ValueError
+            
+        if dim == 1:
+            layer = nn.BatchNorm1d(width, affine=affine)
+        elif dim == 2:
+            layer = nn.BatchNorm2d(width, affine=affine)
+        elif dim == 3:
+            layer = nn.BatchNorm3d(width, affine=affine)
+        else:
+            raise ValueError
+        
+    elif normalization.startswith('layer'):
+        if normalization == 'layer':
+            affine = False
+        elif normalization == 'layer_affine':
+            affine = True
+        else:
+            raise ValueError
+            
+        layer = nn.LayerNorm(width, elementwise_affine=affine)
+        
+    else:
+        raise ValueError
+        
+    return layer
+
+
 class FCNet(nn.Module):
-    def __init__(self, input_shape, num_classes, width, num_hidden=1, bias=True):
+    def __init__(self, input_shape, num_classes, width, num_hidden=1, bias=True, normalization='none'):
         super(FCNet, self).__init__()
         
         input_size = int(np.prod(input_shape))
@@ -15,10 +52,12 @@ class FCNet(nn.Module):
         
         hidden_layers = []
         hidden_layers.append(nn.ReLU())
+        hidden_layers.append(get_normalization_layer(width, normalization, dim=1))
         
         for _ in range(num_hidden-1):
             hidden_layers.append(nn.Linear(width, width, bias=bias))
             hidden_layers.append(nn.ReLU())
+            hidden_layers.append(get_normalization_layer(width, normalization, dim=1))
             
         self.hidden_layers = nn.Sequential(*hidden_layers)
         
