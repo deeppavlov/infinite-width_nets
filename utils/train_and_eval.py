@@ -3,14 +3,14 @@ from copy import copy, deepcopy
 import numpy as np
 import torch
 
-from scale_hyperparams import scale_hyperparams
-from perform_epoch import perform_epoch
+from utils.scale_hyperparams import scale_hyperparams
+from utils.perform_epoch import perform_epoch
 
 
 def get_model_with_modified_width(model_class, reference_model_kwargs, width_arg_name='width', width_factor=1, device='cpu'):
     assert width_arg_name in reference_model_kwargs
     model_kwargs = deepcopy(reference_model_kwargs)
-    model_kwargs[width_arg_name] = int(scaled_model_kwargs[width_arg_name] * width_factor)
+    model_kwargs[width_arg_name] = int(model_kwargs[width_arg_name] * width_factor)
     
     model = model_class(**model_kwargs).to(device)
     return model
@@ -39,7 +39,7 @@ def train_and_eval(model, optimizer, scaling_mode, train_loader, test_loader, nu
     test_accs = {}
 
     for epoch in range(num_epochs):
-        correct_hyperparams(
+        scale_hyperparams(
             model.input_layer, model.hidden_layers, model.output_layer, 
             optimizer=optimizer, width_factor=width_factor, scaling_mode=scaling_mode,
             epoch=epoch, correction_epoch=correction_epoch

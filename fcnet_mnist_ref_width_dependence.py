@@ -2,10 +2,16 @@ import argparse
 import os
 from collections import defaultdict
 from copy import copy, deepcopy
+import pickle
 
 from utils.models import FCNet
 from utils.data_loaders import get_shape, get_loaders
-from utils.train_and_eval import get_model_width_modified_width, get_optimizer, train_and_eval
+from utils.train_and_eval import get_model_with_modified_width, get_optimizer, train_and_eval
+
+import numpy as np
+
+import torch
+import torch.optim as optim
 
 
 model_class = FCNet
@@ -48,8 +54,17 @@ def assure_dir_exists(path):
             os.mkdir(path)
         except FileNotFoundError:
             tail, _ = os.path.split(path)
-            assure_path_exists(tail)
+            assure_dir_exists(tail)
             os.mkdir(path)
+
+
+def defaultdict_to_dict(def_a: defaultdict):
+    a = dict()
+    for k, v in def_a.items():
+        if isinstance(v, defaultdict):
+            v = defaultdict_to_dict(v)
+        a[k] = v
+    return a
 
 
 def main(args):
@@ -63,9 +78,9 @@ def main(args):
         with open(results_all_path, 'rb') as f:
             results_all = pickle.load(f)
     
-    input_shape, num_classes = get_shape(dataset_name)
+    input_shape, num_classes = get_shape(args.dataset)
     
-    train_loader, test_loader, _ = get_loaders(dataset_name, args.batch_size, args.train_size)
+    train_loader, test_loader, _ = get_loaders(args.dataset, args.batch_size, args.train_size)
     
     reference_model_kwargs = {
         'input_shape': input_shape,
@@ -90,7 +105,11 @@ def main(args):
             for correction_epoch in (correction_epochs if scaling_mode != 'default' else [None]):
             
                 for real_width in real_widths:
-                    width_factor = real_width / ref_width
+                    if ref_width is None:
+                        width_factor = 1
+                        reference_model_kwargs['width'] = real_width
+                    else:
+                        width_factor = real_width / ref_width
 
                     for seed in range(args.num_seeds):
                         print('ref_width = {}'.format(ref_width))
@@ -106,16 +125,16 @@ def main(args):
                         torch.manual_seed(seed)
                         np.random.seed(seed)
 
-                        model = get_model_width_modified_width(
+                        model = get_model_with_modified_width(
                             model_class, reference_model_kwargs, width_arg_name='width',
-                            width_factor=width_factor, device=args.device)
+                            width_factor=width_factor, device=torch.device(args.device))
 
                         optimizer = get_optimizer(optimizer_class, {'lr': lr}, model)
 
                         results = train_and_eval(
                             model, optimizer, scaling_mode, train_loader, test_loader, 
                             args.num_epochs, correction_epoch, width_factor=width_factor, 
-                            device=args.device, print_progress=args.print_progress)
+                            device=torch.device(args.device), print_progress=args.print_progress)
                         
                         print('final_train_loss = {:.4f}; final_train_acc = {:.2f}'.format(results['final_train_loss'], results['final_train_acc']*100))
                         print('final_test_loss = {:.4f}; final_test_acc = {:.2f}'.format(results['final_test_loss'], results['final_test_acc']*100))
@@ -124,7 +143,7 @@ def main(args):
                         results_all[scaling_mode][ref_width][correction_epoch][real_width][seed] = copy(results)
                         
                         with open(results_all_path, 'wb') as f:
-                            pickle.dump(results_all, f)
+                            pickle.dump(defaultdict_to_dict(results_all), f)
 
 
 if __name__ == '__main__':
