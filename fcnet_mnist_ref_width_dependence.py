@@ -7,6 +7,7 @@ import pickle
 from utils.models import FCNet
 from utils.data_loaders import get_shape, get_loaders
 from utils.train_and_eval import get_model_with_modified_width, get_optimizer, train_and_eval
+from utils.dict_utils import dict_to_defaultdict, defaultdict_to_dict
 
 import numpy as np
 
@@ -16,9 +17,9 @@ import torch.optim as optim
 
 model_class = FCNet
 
-ref_widths = [32, 512, 8192]
 scaling_modes = ['default', 'mean_field']
-correction_epochs = [0]
+ref_widths = [32, 512, 8192]
+correction_epochs = [0, None]
 real_widths = [32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
 
     
@@ -58,25 +59,15 @@ def assure_dir_exists(path):
             os.mkdir(path)
 
 
-def defaultdict_to_dict(def_a: defaultdict):
-    a = dict()
-    for k, v in def_a.items():
-        if isinstance(v, defaultdict):
-            v = defaultdict_to_dict(v)
-        a[k] = v
-    return a
-
-
 def main(args):
     log_dir = get_log_dir()
     assure_dir_exists(log_dir)
     
     results_all_path = os.path.join(log_dir, 'results_all.dat')
-    if not os.path.exists(results_all_path):
-        results_all = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: None)))))
-    else:
+    results_all = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: None)))))
+    if os.path.exists(results_all_path):
         with open(results_all_path, 'rb') as f:
-            results_all = pickle.load(f)
+            results_all = dict_to_defaultdict(pickle.load(f), results_all)
     
     input_shape, num_classes = get_shape(args.dataset)
     

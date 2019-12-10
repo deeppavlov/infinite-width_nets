@@ -38,34 +38,36 @@ def scale_hyperparams(input_layer, hidden_layers, output_layer,
 #             use_bn = True
 #             break
     
+    weight_factor = 1
+    lr_factor_input = 1
+    lr_factor_hidden = 1
+    lr_factor_output = 1
+
     if scaling_mode == 'default':
-        weight_factor = 1
-        lr_factor_input = 1
-        lr_factor_hidden = 1
-        lr_factor_output = 1
+        pass
     
     elif scaling_mode == 'mean_field':
         if epoch == 0:
-            weight_factor = 1
+            weight_factor *= 1
             if is_gradient_normalized:
-                lr_factor_input = 1
-                lr_factor_hidden = width_factor ** (-0.5)
-                lr_factor_output = width_factor ** (-0.5)
+                lr_factor_input *= 1
+                lr_factor_hidden *= width_factor ** (-0.5)
+                lr_factor_output *= width_factor ** (-0.5)
             else:
-                lr_factor_input = width_factor ** 0.5
-                lr_factor_hidden = 1
-                lr_factor_output = width_factor ** (-0.5)
+                lr_factor_input *= width_factor ** 0.5
+                lr_factor_hidden *= 1
+                lr_factor_output *= width_factor ** (-0.5)
         
         if correction_epoch is not None and epoch == correction_epoch:
-            weight_factor = width_factor ** (-0.5)
+            weight_factor *= width_factor ** (-0.5)
             if is_gradient_normalized:
-                lr_factor_input = 1
-                lr_factor_hidden = width_factor ** (-0.5)
-                lr_factor_output = width_factor ** (-0.5)
+                lr_factor_input *= 1
+                lr_factor_hidden *= width_factor ** (-0.5)
+                lr_factor_output *= width_factor ** (-0.5)
             else:
-                lr_factor_input = width_factor ** 0.5
-                lr_factor_hidden = 1
-                lr_factor_output = width_factor ** (-0.5)
+                lr_factor_input *= width_factor ** 0.5
+                lr_factor_hidden *= 1
+                lr_factor_output *= width_factor ** (-0.5)
         
     else:
         raise ValueError("Unknown scaling mode: {}".format(scaling_mode))
