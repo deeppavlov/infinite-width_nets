@@ -39,3 +39,18 @@ def perform_epoch(model, loader, optimizer=None, max_batch_count=None, device='c
     mean_acc = cum_acc / cum_batch_size
 
     return mean_loss, mean_acc
+
+
+def get_logits(model, loader, device='cpu'):
+    
+    logits = []
+    
+    with torch.no_grad():
+        for X, _ in loader:
+            X = X.to(device)
+            logits.append(model(X).item())
+            
+        logits = torch.cat(logits, dim=0)
+        logits = logits.cpu().numpy()
+
+    return logits
