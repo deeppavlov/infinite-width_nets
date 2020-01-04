@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 from utils.scale_hyperparams import scale_hyperparams
-from utils.perform_epoch import perform_epoch
+from utils.perform_epoch import perform_epoch, get_logits
 
 
 def get_model_with_modified_width(model_class, reference_model_kwargs, width_arg_name='width', width_factor=1, device='cpu'):
@@ -30,13 +30,17 @@ def get_optimizer(optimizer_class, optimizer_kwargs, model):
     return optimizer
 
 
-def train_and_eval(model, optimizer, scaling_mode, train_loader, test_loader, num_epochs, correction_epoch, q,
-                   eval_every=None, test_batch_count=None, width_factor=1, device='cpu', print_progress=False):
+def train_and_eval(model, optimizer, scaling_mode, train_loader, test_loader, test_loader_det, 
+                   num_epochs, correction_epoch, q,
+                   eval_every=None, test_batch_count=None, logits_batch_count=None, 
+                   width_factor=1, device='cpu', print_progress=False):
     train_losses = {}
     test_losses = {}
     
     train_accs = {}
     test_accs = {}
+    
+    logits = {}
 
     for epoch in range(num_epochs):
         scale_hyperparams(
@@ -59,17 +63,22 @@ def train_and_eval(model, optimizer, scaling_mode, train_loader, test_loader, nu
             test_loss, test_acc = perform_epoch(model, test_loader, device=device, max_batch_count=test_batch_count)
             test_losses[epoch] = test_loss
             test_accs[epoch] = test_acc
+            logits[epoch] = get_logits(model, test_loader_det, max_batch_count=logits_batch_count, device=device)
             if print_progress:
                 print('test_loss = {:.4f}; test_acc = {:.2f}'.format(test_loss, test_acc*100))
 
     model.eval()
     final_train_loss, final_train_acc = perform_epoch(model, train_loader, device=device)
     final_test_loss, final_test_acc = perform_epoch(model, test_loader, device=device)
+    
+    final_logits = get_logits(model, test_loader_det, device=device)
 
     results = {
         'train_losses': train_losses, 'train_accs': train_accs,
         'test_losses': test_losses, 'test_accs': test_accs,
+        'logits': logits,
         'final_train_loss': final_train_loss, 'final_train_acc': final_train_acc,
-        'final_test_loss': final_test_loss, 'final_test_acc': final_test_acc
+        'final_test_loss': final_test_loss, 'final_test_acc': final_test_acc,
+        'final_logits': final_logits
     }
     return results
