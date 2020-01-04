@@ -25,7 +25,7 @@ def _count_layers(layers):
 
 
 def scale_hyperparams(input_layer, hidden_layers, output_layer, 
-                      optimizer, width_factor, scaling_mode, epoch, correction_epoch=0):
+                      optimizer, width_factor, scaling_mode, epoch, correction_epoch=0, q=1):
     
     all_except_input_layers = chain(hidden_layers, [output_layer])
     #hidden_layer_count = _count_layers(hidden_layers)
@@ -100,15 +100,17 @@ def scale_hyperparams(input_layer, hidden_layers, output_layer,
                 lr_factor_hidden = width_factor ** (-1)
                 lr_factor_output = width_factor ** (-1)
         
-    elif scaling_mode == 'ntk_var1':
+    elif scaling_mode == 'intermediate':
         if epoch == 0:
-            weight_factor = 1
+            weight_factor = width_factor ** (0.5-q)
             if is_gradient_normalized:
-                raise NotImplementedError
+                lr_factor_input = width_factor ** (q-1)
+                lr_factor_hidden = width_factor ** (-1)
+                lr_factor_output = width_factor ** (-1)
             else:
-                lr_factor_input = width_factor ** (0.5)
-                lr_factor_hidden = width_factor ** (-0.5)
-                lr_factor_output = width_factor ** (-0.5)
+                lr_factor_input = width_factor ** (2*q-1)
+                lr_factor_hidden = width_factor ** (2*q-2)
+                lr_factor_output = width_factor ** (-1)
         
     else:
         raise ValueError("Unknown scaling mode: {}".format(scaling_mode))

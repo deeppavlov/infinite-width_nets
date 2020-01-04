@@ -30,7 +30,7 @@ def get_optimizer(optimizer_class, optimizer_kwargs, model):
     return optimizer
 
 
-def train_and_eval(model, optimizer, scaling_mode, train_loader, test_loader, num_epochs, correction_epoch, 
+def train_and_eval(model, optimizer, scaling_mode, train_loader, test_loader, num_epochs, correction_epoch, q,
                    eval_every=None, test_batch_count=None, width_factor=1, device='cpu', print_progress=False):
     train_losses = {}
     test_losses = {}
@@ -42,7 +42,7 @@ def train_and_eval(model, optimizer, scaling_mode, train_loader, test_loader, nu
         scale_hyperparams(
             model.input_layer, model.hidden_layers, model.output_layer, 
             optimizer=optimizer, width_factor=width_factor, scaling_mode=scaling_mode,
-            epoch=epoch, correction_epoch=correction_epoch
+            epoch=epoch, correction_epoch=correction_epoch, q=q
         )
         
         model.train()
