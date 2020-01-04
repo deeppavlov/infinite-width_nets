@@ -41,14 +41,19 @@ def perform_epoch(model, loader, optimizer=None, max_batch_count=None, device='c
     return mean_loss, mean_acc
 
 
-def get_logits(model, loader, device='cpu'):
+def get_logits(model, loader, max_batch_count=None, device='cpu'):
     
     logits = []
+    batch_count = 0
     
     with torch.no_grad():
         for X, _ in loader:
             X = X.to(device)
             logits.append(model(X).item())
+            
+            batch_count += 1
+            if max_batch_count is not None and batch_count >= max_batch_count:
+                break
             
         logits = torch.cat(logits, dim=0)
         logits = logits.cpu().numpy()
