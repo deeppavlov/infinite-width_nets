@@ -17,8 +17,8 @@ import torch.optim as optim
 
 model_class = FCNet
 
-scaling_modes = ['default', 'mean_field', 'ntk']
-ref_widths = [32, 512, 8192, 2**15, 2**17]
+scaling_modes = ['default', 'mean_field', 'ntk', 'ntk_var1']
+ref_widths = [32, 512, 8192, 2**15]
 correction_epochs = [0]
 real_widths = [32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384]
 
@@ -103,6 +103,12 @@ def main(args):
                     else:
                         width_factor = real_width / ref_width
 
+                    if scaling_mode == 'ntk_var1':
+                        corrected_num_epochs = int(args.num_epochs * width_factor ** (-0.5))
+                    else:
+                        corrected_num_epochs = args.num_epochs
+                    print('corrected_num_epochs = {}'.format(corrected_num_epochs))
+                        
                     for seed in range(args.num_seeds):
                         print('ref_width = {}'.format(ref_width))
                         print('scaling_mode = {}'.format(scaling_mode))
@@ -125,7 +131,7 @@ def main(args):
 
                         results = train_and_eval(
                             model, optimizer, scaling_mode, train_loader, test_loader, 
-                            args.num_epochs, correction_epoch, width_factor=width_factor, 
+                            corrected_num_epochs, correction_epoch, width_factor=width_factor, 
                             device=torch.device(args.device), print_progress=args.print_progress)
                         
                         print('final_train_loss = {:.4f}; final_train_acc = {:.2f}'.format(results['final_train_loss'], results['final_train_acc']*100))

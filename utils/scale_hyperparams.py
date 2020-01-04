@@ -100,6 +100,16 @@ def scale_hyperparams(input_layer, hidden_layers, output_layer,
                 lr_factor_hidden = width_factor ** (-1)
                 lr_factor_output = width_factor ** (-1)
         
+    elif scaling_mode == 'ntk_var1':
+        if epoch == 0:
+            weight_factor = 1
+            if is_gradient_normalized:
+                raise NotImplementedError
+            else:
+                lr_factor_input = width_factor ** (0.5)
+                lr_factor_hidden = width_factor ** (-0.5)
+                lr_factor_output = width_factor ** (-0.5)
+        
     else:
         raise ValueError("Unknown scaling mode: {}".format(scaling_mode))
         
