@@ -17,10 +17,10 @@ import torch.optim as optim
 
 model_class = FCNet
 
-scaling_modes = ['default', 'mean_field', 'ntk', 'ntk_var1']
+scaling_modes = ['default', 'mean_field', 'ntk', 'mean_field_init_corrected', 'intermediate_q=0.75']
 ref_widths = [32, 512, 8192, 2**15]
 correction_epochs = [0]
-real_widths = [32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384]
+real_widths = [32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
 
     
 def get_optimizer_class_and_default_lr(optimizer_name):
@@ -76,7 +76,7 @@ def main(args):
     
     input_shape, num_classes = get_shape(args.dataset)
     
-    train_loader, test_loader, _ = get_loaders(args.dataset, args.batch_size, args.train_size)
+    train_loader, test_loader, test_loader_det = get_loaders(args.dataset, args.batch_size, args.train_size)
     
     reference_model_kwargs = {
         'input_shape': input_shape,
@@ -123,14 +123,16 @@ def main(args):
                         torch.manual_seed(seed+100)
                         np.random.seed(seed+100)
 
+                        init_corrected = scaling_mode.endswith('init_corrected')
                         model = get_model_with_modified_width(
                             model_class, reference_model_kwargs, width_arg_name='width',
-                            width_factor=width_factor, device=torch.device(args.device))
+                            width_factor=width_factor, init_corrected=init_corrected,
+                            device=torch.device(args.device))
 
                         optimizer = get_optimizer(optimizer_class, {'lr': lr}, model)
 
                         results = train_and_eval(
-                            model, optimizer, scaling_mode, train_loader, test_loader, 
+                            model, optimizer, scaling_mode, train_loader, test_loader, test_loader_det,
                             corrected_num_epochs, correction_epoch, width_factor=width_factor, 
                             device=torch.device(args.device), print_progress=args.print_progress)
                         

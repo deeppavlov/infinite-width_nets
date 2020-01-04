@@ -26,13 +26,20 @@ def _count_layers(layers):
 
 def _normalize_scaling_mode(scaling_mode):
     scaling_mode = scaling_mode.split('_init_corrected')[0]
-    return scaling_mode
+    components = scaling_mode.split('_q=')
+    scaling_mode = components[0]
+    if len(components) > 1:
+        q = float(components[1])
+    else:
+        q = None
+    return scaling_mode, q
 
 
 def scale_hyperparams(input_layer, hidden_layers, output_layer, 
-                      optimizer, width_factor, scaling_mode, epoch, correction_epoch=0, q=1):
+                      optimizer, width_factor, scaling_mode, epoch, correction_epoch=0):
     
-    scaling_mode = _normalize_scaling_mode(scaling_mode)
+    scaling_mode, q = _normalize_scaling_mode(scaling_mode)
+    #print(scaling_mode, q)
     
     all_except_input_layers = chain(hidden_layers, [output_layer])
     #hidden_layer_count = _count_layers(hidden_layers)
@@ -57,68 +64,74 @@ def scale_hyperparams(input_layer, hidden_layers, output_layer,
     elif scaling_mode == 'mean_field':
         if epoch == 0:
             weight_factor *= 1
-            if is_gradient_normalized:
-                lr_factor_input *= 1
-                lr_factor_hidden *= width_factor ** (-0.5)
-                lr_factor_output *= width_factor ** (-0.5)
-            else:
-                lr_factor_input *= width_factor ** 0.5
-                lr_factor_hidden *= 1
-                lr_factor_output *= width_factor ** (-0.5)
+            if optimizer is not None:
+                if is_gradient_normalized:
+                    lr_factor_input *= 1
+                    lr_factor_hidden *= width_factor ** (-0.5)
+                    lr_factor_output *= width_factor ** (-0.5)
+                else:
+                    lr_factor_input *= width_factor ** 0.5
+                    lr_factor_hidden *= 1
+                    lr_factor_output *= width_factor ** (-0.5)
         
         if correction_epoch is not None and epoch == correction_epoch:
             weight_factor *= width_factor ** (-0.5)
-            if is_gradient_normalized:
-                lr_factor_input *= 1
-                lr_factor_hidden *= width_factor ** (-0.5)
-                lr_factor_output *= width_factor ** (-0.5)
-            else:
-                lr_factor_input *= width_factor ** 0.5
-                lr_factor_hidden *= 1
-                lr_factor_output *= width_factor ** (-0.5)
+            if optimizer is not None:
+                if is_gradient_normalized:
+                    lr_factor_input *= 1
+                    lr_factor_hidden *= width_factor ** (-0.5)
+                    lr_factor_output *= width_factor ** (-0.5)
+                else:
+                    lr_factor_input *= width_factor ** 0.5
+                    lr_factor_hidden *= 1
+                    lr_factor_output *= width_factor ** (-0.5)
         
     elif scaling_mode == 'mean_field_var1':
         if epoch == 0:
             weight_factor *= width_factor ** (-0.5)
-            if is_gradient_normalized:
-                raise NotImplementedError
-            else:
-                lr_factor_input *= width_factor ** 1.5
-                lr_factor_hidden *= 1
-                lr_factor_output *= width_factor ** (-0.5)
+            if optimizer is not None:
+                if is_gradient_normalized:
+                    raise NotImplementedError
+                else:
+                    lr_factor_input *= width_factor ** 1.5
+                    lr_factor_hidden *= 1
+                    lr_factor_output *= width_factor ** (-0.5)
         
         if correction_epoch is not None and epoch == correction_epoch:
             weight_factor *= 1
-            if is_gradient_normalized:
-                raise NotImplementedError
-            else:
-                lr_factor_input *= width_factor ** (-0.5)
-                lr_factor_hidden *= 1
-                lr_factor_output *= width_factor ** (-0.5)
+            if optimizer is not None:
+                if is_gradient_normalized:
+                    raise NotImplementedError
+                else:
+                    lr_factor_input *= width_factor ** (-0.5)
+                    lr_factor_hidden *= 1
+                    lr_factor_output *= width_factor ** (-0.5)
         
     elif scaling_mode == 'ntk':
         if epoch == 0:
             weight_factor = 1
-            if is_gradient_normalized:
-                lr_factor_input = width_factor ** (-0.5)
-                lr_factor_hidden = width_factor ** (-1)
-                lr_factor_output = width_factor ** (-1)
-            else:
-                lr_factor_input = 1
-                lr_factor_hidden = width_factor ** (-1)
-                lr_factor_output = width_factor ** (-1)
+            if optimizer is not None:
+                if is_gradient_normalized:
+                    lr_factor_input = width_factor ** (-0.5)
+                    lr_factor_hidden = width_factor ** (-1)
+                    lr_factor_output = width_factor ** (-1)
+                else:
+                    lr_factor_input = 1
+                    lr_factor_hidden = width_factor ** (-1)
+                    lr_factor_output = width_factor ** (-1)
         
     elif scaling_mode == 'intermediate':
         if epoch == 0:
             weight_factor = width_factor ** (0.5-q)
-            if is_gradient_normalized:
-                lr_factor_input = width_factor ** (q-1)
-                lr_factor_hidden = width_factor ** (-1)
-                lr_factor_output = width_factor ** (-1)
-            else:
-                lr_factor_input = width_factor ** (2*q-1)
-                lr_factor_hidden = width_factor ** (2*q-2)
-                lr_factor_output = width_factor ** (-1)
+            if optimizer is not None:
+                if is_gradient_normalized:
+                    lr_factor_input = width_factor ** (q-1)
+                    lr_factor_hidden = width_factor ** (-1)
+                    lr_factor_output = width_factor ** (-1)
+                else:
+                    lr_factor_input = width_factor ** (2*q-1)
+                    lr_factor_hidden = width_factor ** (2*q-2)
+                    lr_factor_output = width_factor ** (-1)
         
     else:
         raise ValueError("Unknown scaling mode: {}".format(scaling_mode))

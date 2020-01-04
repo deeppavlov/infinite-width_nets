@@ -49,13 +49,13 @@ def get_logits(model, loader, max_batch_count=None, device='cpu'):
     with torch.no_grad():
         for X, _ in loader:
             X = X.to(device)
-            logits.append(model(X).item())
+            logits.append(model(X).cpu())
             
             batch_count += 1
             if max_batch_count is not None and batch_count >= max_batch_count:
                 break
             
         logits = torch.cat(logits, dim=0)
-        logits = logits.cpu().numpy()
+        logits = logits.numpy()
 
     return logits

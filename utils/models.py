@@ -87,12 +87,12 @@ class FCNet(nn.Module):
         self.input_layer = nn.Linear(input_size, width, bias=bias)
         
         hidden_layers = []
-        hidden_layers.append(nonlinearity)
+        hidden_layers.append(nonlinearity())
         hidden_layers.append(get_normalization_layer(width, normalization, dim=1))
         
         for _ in range(num_hidden-1):
             hidden_layers.append(nn.Linear(width, width, bias=bias))
-            hidden_layers.append(nonlinearity)
+            hidden_layers.append(nonlinearity())
             hidden_layers.append(get_normalization_layer(width, normalization, dim=1))
             
         self.hidden_layers = nn.Sequential(*hidden_layers)
