@@ -5,6 +5,26 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+class InitCorrectedModel(nn.Module):
+    def __init__(self, model_class, model_kwargs):
+        super(InitCorrectedModel, self).__init__()
+        
+        self.model_scaled = model_class(**model_kwargs)
+        self.model_init = model_class(**model_kwargs)
+        self.model_init_scaled = model_class(**model_kwargs)
+        
+        self.input_layer = self.model_scaled.input_layer
+        self.hidden_layers = self.model_scaled.hidden_layers
+        self.output_layer = self.model_scaled.output_layer
+        
+        self.input_layer_init = self.model_init_scaled.input_layer
+        self.hidden_layers_init = self.model_init_scaled.hidden_layers
+        self.output_layer_init = self.model_init_scaled.output_layer
+        
+    def forward(self, X):
+        return self.model_scaled(X) - self.model_init_scaled(X) + self.model_init(X)
+
+
 def get_normalization_layer(width, normalization, dim):
     if normalization == 'none':
         layer = nn.Identity()

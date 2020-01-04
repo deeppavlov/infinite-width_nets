@@ -5,14 +5,21 @@ import torch
 
 from utils.scale_hyperparams import scale_hyperparams
 from utils.perform_epoch import perform_epoch, get_logits
+from utils.models import InitCorrectedModel
 
 
-def get_model_with_modified_width(model_class, reference_model_kwargs, width_arg_name='width', width_factor=1, device='cpu'):
+def get_model_with_modified_width(model_class, reference_model_kwargs, 
+                                  width_arg_name='width', width_factor=1, init_corrected=False,
+                                  device='cpu'):
     assert width_arg_name in reference_model_kwargs
     model_kwargs = deepcopy(reference_model_kwargs)
     model_kwargs[width_arg_name] = int(model_kwargs[width_arg_name] * width_factor)
     
-    model = model_class(**model_kwargs).to(device)
+    if init_corrected:
+        model = InitCorrectedModel(model_class, model_kwargs).to(device)
+    else:
+        model = model_class(**model_kwargs).to(device)
+    
     return model
 
 
@@ -41,6 +48,8 @@ def train_and_eval(model, optimizer, scaling_mode, train_loader, test_loader, te
     test_accs = {}
     
     logits = {}
+    
+    init_corrected = scaling_mode.endswith('init_corrected')
 
     for epoch in range(num_epochs):
         scale_hyperparams(
@@ -48,6 +57,12 @@ def train_and_eval(model, optimizer, scaling_mode, train_loader, test_loader, te
             optimizer=optimizer, width_factor=width_factor, scaling_mode=scaling_mode,
             epoch=epoch, correction_epoch=correction_epoch, q=q
         )
+        if init_corrected:
+            scale_hyperparams(
+                model.input_layer_init, model.hidden_layers_init, model.output_layer_init, 
+                optimizer=None, width_factor=width_factor, scaling_mode=scaling_mode,
+                epoch=epoch, correction_epoch=correction_epoch, q=q
+            )
         
         model.train()
         train_loss, train_acc = perform_epoch(model, train_loader, optimizer=optimizer, device=device)

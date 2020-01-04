@@ -24,13 +24,21 @@ def _count_layers(layers):
     return counter
 
 
+def _normalize_scaling_mode(scaling_mode):
+    scaling_mode = scaling_mode.split('_init_corrected')[0]
+    return scaling_mode
+
+
 def scale_hyperparams(input_layer, hidden_layers, output_layer, 
                       optimizer, width_factor, scaling_mode, epoch, correction_epoch=0, q=1):
+    
+    scaling_mode = _normalize_scaling_mode(scaling_mode)
     
     all_except_input_layers = chain(hidden_layers, [output_layer])
     #hidden_layer_count = _count_layers(hidden_layers)
     
-    is_gradient_normalized = _test_gradient_normalization(optimizer)
+    if optimizer is not None:
+        is_gradient_normalized = _test_gradient_normalization(optimizer)
     
 #     use_bn = False
 #     for layer in hidden_layers:
@@ -122,9 +130,10 @@ def scale_hyperparams(input_layer, hidden_layers, output_layer,
                 if layer.bias is not None:
                     raise NotImplementedError
                 
-    assert len(optimizer.param_groups) == 3
-                
-    optimizer.param_groups[0]['lr'] *= lr_factor_input
-    optimizer.param_groups[1]['lr'] *= lr_factor_hidden
-    optimizer.param_groups[2]['lr'] *= lr_factor_output
+    if optimizer is not None:
+        assert len(optimizer.param_groups) == 3
+
+        optimizer.param_groups[0]['lr'] *= lr_factor_input
+        optimizer.param_groups[1]['lr'] *= lr_factor_hidden
+        optimizer.param_groups[2]['lr'] *= lr_factor_output
     
