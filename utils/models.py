@@ -42,21 +42,37 @@ def get_normalization_layer(width, normalization, dim):
     return layer
 
 
+def get_nonlinearity(nonlinearity):
+    if nonlinearity == 'relu':
+        return nn.ReLU
+    elif nonlinearity == 'lrelu':
+        return nn.LeakyReLU
+    elif nonlinearity == 'softplus':
+        return nn.Softplus
+    elif isinstance(nonlinearity, nn.Module):
+        return nonlinearity
+    else:
+        raise ValueError
+
+
 class FCNet(nn.Module):
-    def __init__(self, input_shape, num_classes, width, num_hidden=1, bias=True, normalization='none'):
+    def __init__(self, input_shape, num_classes, width, 
+                 num_hidden=1, bias=True, normalization='none', nonlinearity='relu'):
         super(FCNet, self).__init__()
+        
+        nonlinearity = get_nonlinearity(nonlinearity)
         
         input_size = int(np.prod(input_shape))
         
         self.input_layer = nn.Linear(input_size, width, bias=bias)
         
         hidden_layers = []
-        hidden_layers.append(nn.ReLU())
+        hidden_layers.append(nonlinearity)
         hidden_layers.append(get_normalization_layer(width, normalization, dim=1))
         
         for _ in range(num_hidden-1):
             hidden_layers.append(nn.Linear(width, width, bias=bias))
-            hidden_layers.append(nn.ReLU())
+            hidden_layers.append(nonlinearity)
             hidden_layers.append(get_normalization_layer(width, normalization, dim=1))
             
         self.hidden_layers = nn.Sequential(*hidden_layers)
