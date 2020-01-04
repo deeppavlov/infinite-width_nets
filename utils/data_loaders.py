@@ -6,13 +6,29 @@ from torchvision import datasets, transforms
 from sklearn.model_selection import train_test_split
 
         
-AVAILABLE_DATASETS = ['mnist', 'cifar10']
+AVAILABLE_DATASETS = ['mnist', 'cifar10', 'cifar2']
+
+
+class CIFAR2(datasets.CIFAR10):
+    def __init__(self, root, train=True, transform=None, target_transform=None,
+                 download=False):
+
+        super(CIFAR2, self).__init__(root, train=train, transform=transform,
+                                     target_transform=target_transform, download=download)
+        
+        self.data = np.array(self.data)
+        self.targets = np.array(self.targets)
+        self.data = self.data[self.targets < 2]
+        self.targets = self.targets[self.targets < 2]
+        print('dataset size = {}'.format(len(self.data)))
 
 
 def _get_mean_and_std(dataset_name):
     if dataset_name == 'mnist':
         return 0.1307, 0.3081
     elif dataset_name == 'cifar10':
+        return 0.4734, 0.2516
+    elif dataset_name == 'cifar2':
         return 0.4734, 0.2516
     else:
         raise ValueError("unknown dataset: {}".format(dataset_name))
@@ -23,6 +39,8 @@ def _get_dataset_class(dataset_name):
         return datasets.MNIST
     elif dataset_name == 'cifar10':
         return datasets.CIFAR10
+    elif dataset_name == 'cifar2':
+        return CIFAR2
     else:
         raise ValueError("unknown dataset: {}".format(dataset_name))
     
@@ -32,6 +50,8 @@ def get_shape(dataset_name):
         return (1, 28, 28), 10
     elif dataset_name == 'cifar10':
         return (3, 32, 32), 10
+    elif dataset_name == 'cifar2':
+        return (3, 32, 32), 2
     else:
         raise ValueError("unknown dataset: {}".format(dataset_name))
         
