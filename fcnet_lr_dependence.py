@@ -167,8 +167,8 @@ if __name__ == '__main__':
     args = argparser.parse_args()
     
     if args.dataset == 'cifar2':
-        log10_lr_factors = [-1.5, -1, -0.5, 0., 0.5]
+        log10_lr_factors = [-3, -2.5, -2, -1.5, -1, -0.5, 0., 0.5, 1]
     else:
-        log10_lr_factors = [-1, -0.5, 0., 0.5, 1]
+        log10_lr_factors = [-3, -2.5, -2, -1.5, -1, -0.5, 0., 0.5, 1]
 
     main(args)
