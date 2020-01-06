@@ -5,7 +5,7 @@ import torch
 
 from utils.scale_hyperparams import scale_hyperparams
 from utils.perform_epoch import perform_epoch, get_logits
-from utils.models import InitCorrectedModel
+from utils.models import InitCorrectedModel, LinearizedModel, OptimizerForLinearizedModel
 
 
 def get_model_with_modified_width(model_class, reference_model_kwargs, 
@@ -50,20 +50,30 @@ def train_and_eval(model, optimizer, scaling_mode, train_loader, test_loader, te
     logits = {}
     
     init_corrected = scaling_mode.endswith('init_corrected')
-
+    
     for epoch in range(num_epochs):
-        scale_hyperparams(
-            model.input_layer, model.hidden_layers, model.output_layer, 
-            optimizer=optimizer, width_factor=width_factor, scaling_mode=scaling_mode,
-            epoch=epoch, correction_epoch=correction_epoch
-        )
-        if init_corrected:
+        if scaling_mode == 'linearized':
+            if epoch == 0:
+                scale_hyperparams(
+                    model.input_layer, model.hidden_layers, model.output_layer, 
+                    optimizer=optimizer, width_factor=width_factor, scaling_mode=scaling_mode,
+                    epoch=epoch, correction_epoch=correction_epoch
+                )
+                model = LinearizedModel(model)
+                optimizer = OptimizerForLinearizedModel(optimizer, model)
+        else:
             scale_hyperparams(
-                model.input_layer_init, model.hidden_layers_init, model.output_layer_init, 
-                optimizer=None, width_factor=width_factor, scaling_mode=scaling_mode,
+                model.input_layer, model.hidden_layers, model.output_layer, 
+                optimizer=optimizer, width_factor=width_factor, scaling_mode=scaling_mode,
                 epoch=epoch, correction_epoch=correction_epoch
             )
-        
+            if init_corrected:
+                scale_hyperparams(
+                    model.input_layer_init, model.hidden_layers_init, model.output_layer_init, 
+                    optimizer=None, width_factor=width_factor, scaling_mode=scaling_mode,
+                    epoch=epoch, correction_epoch=correction_epoch
+                )        
+
         model.train()
         train_loss, train_acc = perform_epoch(model, train_loader, optimizer=optimizer, device=device)
         train_losses[epoch] = train_loss

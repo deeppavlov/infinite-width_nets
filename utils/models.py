@@ -1,8 +1,49 @@
+from copy import deepcopy
+
 import numpy as np
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.optim as optim
+
+
+class LinearizedModel(nn.Module):
+    def __init__(self, model: nn.Module):
+        super(LinearizedModel, self).__init__()
+        
+        self.model = model
+        self.model_init = deepcopy(model)
+        self.model_init_for_grad = deepcopy(model)
+        
+        self.input_layer = self.model.input_layer
+        self.hidden_layers = self.model.hidden_layers
+        self.output_layer = self.model.output_layer
+        
+    def forward(self, X):
+        return self.model(X).detach() - self.model_init(X).detach() + self.model_init_for_grad(X)
+    
+    
+class OptimizerForLinearizedModel():
+    def __init__(self, optimizer: optim.Optimizer, linearized_model: LinearizedModel):
+        super(OptimizerForLinearizedModel, self).__init__()
+        
+        self.linearized_model = linearized_model
+        
+        self.optimizer = optimizer
+        
+        self.params = list(self.linearized_model.model.parameters())
+        self.params_init_for_grad = list(self.linearized_model.model_init_for_grad.parameters())
+        
+    def zero_grad(self):
+        self.optimizer.zero_grad()
+        self.linearized_model.model_init_for_grad.zero_grad()
+        
+    def step(self):
+        for param, param_init_for_grad in zip(self.params, self.params_init_for_grad):
+            param.grad = param_init_for_grad.grad
+        
+        self.optimizer.step()
 
 
 class InitCorrectedModel(nn.Module):
@@ -10,8 +51,8 @@ class InitCorrectedModel(nn.Module):
         super(InitCorrectedModel, self).__init__()
         
         self.model_scaled = model_class(**model_kwargs)
-        self.model_init = model_class(**model_kwargs)
-        self.model_init_scaled = model_class(**model_kwargs)
+        self.model_init = deepcopy(self.model_scaled)
+        self.model_init_scaled = deepcopy(self.model_scaled)
         
         self.input_layer = self.model_scaled.input_layer
         self.hidden_layers = self.model_scaled.hidden_layers
@@ -22,7 +63,7 @@ class InitCorrectedModel(nn.Module):
         self.output_layer_init = self.model_init_scaled.output_layer
         
     def forward(self, X):
-        return self.model_scaled(X) - self.model_init_scaled(X) + self.model_init(X)
+        return self.model_scaled(X) - self.model_init_scaled(X).detach() + self.model_init(X).detach()
 
 
 def get_normalization_layer(width, normalization, dim):

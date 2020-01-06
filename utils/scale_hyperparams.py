@@ -107,7 +107,7 @@ def scale_hyperparams(input_layer, hidden_layers, output_layer,
                     lr_factor_hidden *= 1
                     lr_factor_output *= width_factor ** (-0.5)
         
-    elif scaling_mode == 'ntk':
+    elif scaling_mode in {'ntk', 'linearized'}:
         if epoch == 0:
             weight_factor = 1
             if optimizer is not None:

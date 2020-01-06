@@ -17,7 +17,7 @@ import torch.optim as optim
 
 model_class = FCNet
 
-scaling_modes = ['default', 'mean_field', 'ntk', 'mean_field_init_corrected', 'intermediate_q=0.75']
+scaling_modes = ['default', 'mean_field', 'ntk', 'mean_field_init_corrected', 'intermediate_q=0.75', 'linearized']
 ref_widths = [32, 512]
 correction_epochs = [0]
 width_factors = [1, 16]
@@ -118,7 +118,7 @@ def main(args):
                             print('log10_lr_factor = {}'.format(log10_lr_factor))
                             print('seed = {}'.format(seed))
 
-                            if results_all[scaling_mode][ref_width][correction_epoch][width_factor][log10_lr_factor][seed] is not None:
+                            if results_all[scaling_mode][ref_width][correction_epoch][width_factor][log10_lr_factor][seed] is not None and scaling_mode != 'mean_field_init_corrected':
                                 print('already done\n')
                                 continue
 
