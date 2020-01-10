@@ -45,7 +45,7 @@ def get_optimizer_class_and_default_lr(optimizer_name):
 def get_log_dir():
     log_dir = os.path.join(
         'results', 'ref_width_dependence', '{}_{}'.format(args.dataset, args.train_size), 
-        'num_hidden={}_bias={}_normalization={}'.format(args.num_hidden, args.bias, args.normalization), '{}_lr={}'.format(args.optimizer, args.lr))
+        'num_hidden={}_activation={}_bias={}_normalization={}'.format(args.num_hidden, args.activation, args.bias, args.normalization), '{}_lr={}'.format(args.optimizer, args.lr))
     return log_dir
 
 
@@ -85,6 +85,7 @@ def main(args):
         'num_hidden': args.num_hidden,
         'bias': args.bias,
         'normalization': args.normalization,
+        'activation': args.activation,
     }
     
     for scaling_mode in scaling_modes:
@@ -116,7 +117,7 @@ def main(args):
                         print('real_width = {}'.format(real_width))
                         print('seed = {}'.format(seed))
                         
-                        if results_all[scaling_mode][ref_width][correction_epoch][real_width][seed] is not None and scaling_mode != 'mean_field_init_corrected':
+                        if results_all[scaling_mode][ref_width][correction_epoch][real_width][seed] is not None:
                             print('already done\n')
                             continue
                         
@@ -158,6 +159,7 @@ if __name__ == '__main__':
     argparser.add_argument('--num_hidden', type=int, default=1)
     argparser.add_argument('--bias', type=bool, default=False)
     argparser.add_argument('--normalization', type=str, default='none')
+    argparser.add_argument('--activation', type=str, default='relu')
     argparser.add_argument('--optimizer', type=str, default='sgd')
     argparser.add_argument('--lr', default=None)
     argparser.add_argument('--print_progress', type=bool, default=False)

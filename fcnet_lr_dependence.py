@@ -118,7 +118,7 @@ def main(args):
                             print('log10_lr_factor = {}'.format(log10_lr_factor))
                             print('seed = {}'.format(seed))
 
-                            if results_all[scaling_mode][ref_width][correction_epoch][width_factor][log10_lr_factor][seed] is not None and scaling_mode != 'mean_field_init_corrected':
+                            if results_all[scaling_mode][ref_width][correction_epoch][width_factor][log10_lr_factor][seed] is not None:
                                 print('already done\n')
                                 continue
 
