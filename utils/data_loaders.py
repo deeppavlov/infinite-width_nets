@@ -69,7 +69,7 @@ def get_loaders(dataset_name, batch_size, train_size=None):
     test_dataset = DatasetClass(
         data_path, train=False, download=True, transform=transform)
     
-    if train_size is None:
+    if train_size is None or train_size == len(train_dataset):
         sampler = None
         shuffle = True
     else:
