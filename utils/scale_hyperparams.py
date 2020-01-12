@@ -113,7 +113,7 @@ def scale_hyperparams(input_layer, hidden_layers, output_layer,
             if optimizer is not None:
                 if is_gradient_normalized:
                     lr_factor_input = width_factor ** (-0.5)
-                    lr_factor_hidden = width_factor ** (-1)
+                    lr_factor_hidden = width_factor ** (-1.5)
                     lr_factor_output = width_factor ** (-1)
                 else:
                     lr_factor_input = 1
@@ -126,7 +126,7 @@ def scale_hyperparams(input_layer, hidden_layers, output_layer,
             if optimizer is not None:
                 if is_gradient_normalized:
                     lr_factor_input = width_factor ** (q-1)
-                    lr_factor_hidden = width_factor ** (-1)
+                    lr_factor_hidden = width_factor ** (q-2)
                     lr_factor_output = width_factor ** (-1)
                 else:
                     lr_factor_input = width_factor ** (2*q-1)
