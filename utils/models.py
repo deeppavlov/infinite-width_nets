@@ -103,11 +103,20 @@ def get_normalization_layer(width, normalization, dim):
     return layer
 
 
+def _get_negative_slope(activation):
+    if activation == 'lrelu':
+        return 0.1
+    elif activation == 'relu':
+        return 0.
+    else:
+        raise ValueError
+
+
 def get_activation(activation):
     if activation == 'relu':
         return nn.ReLU
     elif activation == 'lrelu':
-        return nn.LeakyReLU
+        return lambda: nn.LeakyReLU(negative_slope=_get_negative_slope(activation))
     elif activation == 'softplus':
         return nn.Softplus
     elif activation == 'elu':
@@ -122,6 +131,8 @@ class FCNet(nn.Module):
     def __init__(self, input_shape, num_classes, width, 
                  num_hidden=1, bias=True, normalization='none', activation='relu'):
         super(FCNet, self).__init__()
+        
+        self.activation = activation
         
         activation = get_activation(activation)
         
@@ -142,10 +153,30 @@ class FCNet(nn.Module):
         
         self.output_layer = nn.Linear(width, num_classes, bias=bias)
         
-    def forward(self, X):
-        Z = self.input_layer(X.view(X.shape[0], -1))
-        Z = self.hidden_layers(Z)
-        return self.output_layer(Z.view(Z.shape[0], -1))
+    def forward(self, X, model_to_get_masks_from=None):
+        if model_to_get_masks_from is None:
+            Z = self.input_layer(X.view(X.shape[0], -1))
+            Z = self.hidden_layers(Z)
+            return self.output_layer(Z.view(Z.shape[0], -1))
+        
+        elif isinstance(model_to_get_masks_from, FCNet):
+            assert self.activation == model_to_get_masks_from.activation
+            assert self.activation in ['relu', 'lrelu']
+            assert len(self.hidden_layers) == len(model_to_get_masks_from.hidden_layers)
+            
+            Z = self.input_layer(X.view(X.shape[0], -1))
+            Z_for_mask = model_to_get_masks_from.input_layer(X.view(X.shape[0], -1))
+            for layer, layer_for_mask in zip(self.hidden_layers, model_to_get_masks_from.hidden_layers):
+                if isinstance(layer, (nn.ReLU, nn.LeakyReLU)):
+                    negative_slope = _get_negative_slope(self.activation)
+                    Z = Z * ((Z_for_mask > 0).float() + negative_slope * (Z_for_mask < 0).float())
+                    Z_for_mask = F.leaky_relu(Z_for_mask, negative_slope=negative_slope)
+                else:
+                    Z = layer(Z)
+                    Z_for_mask = layer_for_mask(Z_for_mask)
+            return self.output_layer(Z.view(Z.shape[0], -1))
+        else:
+            raise ValueError
     
     
 def make_layers(config, input_shape, init_num_kernels, use_bn, bias, dropout_rate, bn_affine):

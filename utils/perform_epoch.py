@@ -5,7 +5,17 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-def perform_epoch(model, loader, optimizer=None, max_batch_count=None, device='cpu'):
+def get_loss_function(loss_name):
+    if loss_name == 'ce':
+        return nn.CrossEntropyLoss()
+    elif loss_name == 'bce':
+        return nn.BCEWithLogitsLoss()
+    else:
+        raise ValueError
+
+
+def perform_epoch(model, loader, optimizer=None, max_batch_count=None, device='cpu', loss_name='ce'):
+    loss_function = get_loss_function(loss_name)
     
     cum_loss = 0
     cum_acc = 0
@@ -19,8 +29,13 @@ def perform_epoch(model, loader, optimizer=None, max_batch_count=None, device='c
             batch_size = X.shape[0]
 
             logits = model(X)
-            loss = F.cross_entropy(logits, y)
-            acc = torch.mean((torch.max(logits, dim=-1)[1] == y).float())
+            if loss_name == 'bce':
+                logits = logits.view(-1)
+                acc = torch.mean((logits * (y*2-1) > 0).float())
+                loss = loss_function(logits, y.float())
+            else:
+                acc = torch.mean((torch.max(logits, dim=-1)[1] == y).float())
+                loss = loss_function(logits, y)
                 
             if optimizer is not None:
                 optimizer.zero_grad()

@@ -17,8 +17,10 @@ import torch.optim as optim
 
 model_class = FCNet
 
-scaling_modes = ['default', 'mean_field', 'ntk', 'mean_field_init_corrected', 'intermediate_q=0.75', 'linearized']
-ref_widths = [32, 512, 8192, 2**15]
+#scaling_modes = ['default', 'mean_field', 'ntk', 'mean_field_init_corrected', 'intermediate_q=0.75', 'linearized']
+scaling_modes = ['mean_field', 'ntk']
+#ref_widths = [32, 512, 8192]
+ref_widths = [32]
 correction_epochs = [0]
 real_widths = [32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
 
@@ -70,17 +72,22 @@ def main(args):
     
     results_all_path = os.path.join(log_dir, 'results_all.dat')
     results_all = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: None)))))
-    if os.path.exists(results_all_path):
-        with open(results_all_path, 'rb') as f:
-            results_all = dict_to_defaultdict(pickle.load(f), results_all)
+    try:
+        if os.path.exists(results_all_path):
+            with open(results_all_path, 'rb') as f:
+                results_all = dict_to_defaultdict(pickle.load(f), results_all)
+    except EOFError:
+        pass
     
     input_shape, num_classes = get_shape(args.dataset)
     
     train_loader, test_loader, test_loader_det = get_loaders(args.dataset, args.batch_size, args.train_size)
     
+    binary = args.dataset.endswith('binary')
+    
     reference_model_kwargs = {
         'input_shape': input_shape,
-        'num_classes': num_classes,
+        'num_classes': 1 if binary else num_classes,
         'width': None,
         'num_hidden': args.num_hidden,
         'bias': args.bias,
@@ -117,28 +124,79 @@ def main(args):
                         print('real_width = {}'.format(real_width))
                         print('seed = {}'.format(seed))
                         
-                        if results_all[scaling_mode][ref_width][correction_epoch][real_width][seed] is not None:
-                            print('already done\n')
-                            continue
+                        results = results_all[scaling_mode][ref_width][correction_epoch][real_width][seed]
                         
+                        if results is not None and 'model_state_dict' in results and 'model_init_state_dict' in results and not args.recompute:# and (scaling_mode not in ['ntk', 'linearized'] or args.optimizer in ['sgd', 'sgd_momentum'] or args.num_hidden == 1):
+                            if args.recompute_final_results:
+                                model_state_dict, model_init_state_dict = results['model_state_dict'], results['model_init_state_dict']
+                            else:
+                                print('already done\n')
+                                continue
+                        else:
+                            model_state_dict, model_init_state_dict = None, None
+
+                        init_corrected = scaling_mode.endswith('init_corrected')
+
+                        device = torch.device(args.device)
+                        
+                        model_init = get_model_with_modified_width(
+                            model_class, reference_model_kwargs, width_arg_name='width',
+                            width_factor=width_factor, init_corrected=init_corrected)
+                        if model_init_state_dict is not None:
+                            model_init.load_state_dict(model_init_state_dict)
+                        model_init.to(device)
+                            
+                        if model_state_dict is not None:
+                            model = get_model_with_modified_width(
+                                model_class, reference_model_kwargs, width_arg_name='width',
+                                width_factor=width_factor, init_corrected=init_corrected)
+                            model.load_state_dict(model_state_dict)
+                            model.to(device)
+                        else:
+                            model = None
+
+                        optimizer = get_optimizer(optimizer_class, {'lr': lr}, model_init)
+
                         torch.manual_seed(seed+100)
                         np.random.seed(seed+100)
 
-                        init_corrected = scaling_mode.endswith('init_corrected')
-                        model = get_model_with_modified_width(
-                            model_class, reference_model_kwargs, width_arg_name='width',
-                            width_factor=width_factor, init_corrected=init_corrected,
-                            device=torch.device(args.device))
-
-                        optimizer = get_optimizer(optimizer_class, {'lr': lr}, model)
-
                         results = train_and_eval(
-                            model, optimizer, scaling_mode, train_loader, test_loader, test_loader_det,
+                            model, model_init, optimizer, scaling_mode, train_loader, test_loader, test_loader_det,
                             corrected_num_epochs, correction_epoch, width_factor=width_factor, 
-                            device=torch.device(args.device), print_progress=args.print_progress)
+                            device=device, print_progress=args.print_progress, binary=binary)
                         
-                        print('final_train_loss = {:.4f}; final_train_acc = {:.2f}'.format(results['final_train_loss'], results['final_train_acc']*100))
-                        print('final_test_loss = {:.4f}; final_test_acc = {:.2f}'.format(results['final_test_loss'], results['final_test_acc']*100))
+                        print(
+                            'final_train_loss = {:.4f}; final_train_acc = {:.2f}'.format(
+                                results['final_train_loss'], results['final_train_acc']*100
+                            )
+                        )
+                        print(
+                            'final_test_loss = {:.4f}; final_test_acc = {:.2f}'.format(
+                                results['final_test_loss'], results['final_test_acc']*100
+                            )
+                        )
+                        print()
+                        
+                        for key in results.keys():
+                            if key.startswith('final_test_loss_'):
+                                key_terms = key.split('loss')
+                                key_loss = key
+                                key_acc = key_terms[0] + 'acc' + key_terms[-1]
+                                loss, acc = results[key_loss], results[key_acc]
+                                if isinstance(loss, list):
+                                    print('{} = {}; {} = {}'.format(key_loss, loss, key_acc, list(np.array(acc)*100)))
+                                else:
+                                    print('{} = {:.4f}; {} = {:.2f}'.format(key_loss, loss, key_acc, acc))
+                        print()
+                        
+                        for key in results.keys():
+                            if key.startswith('final_var_f'):
+                                print('{} = {:.4f}'.format(key, results[key]))
+                        print()
+                        
+                        print('input_weight_mean_abs_inc = {:.4f}'.format(results['input_weight_mean_abs_inc']))
+                        print('hidden_weight_mean_abs_inc = {}'.format(results['hidden_weight_mean_abs_inc']))
+                        print('output_weight_mean_abs_inc = {:.4f}'.format(results['output_weight_mean_abs_inc']))
                         print()
                         
                         results_all[scaling_mode][ref_width][correction_epoch][real_width][seed] = copy(results)
@@ -163,6 +221,8 @@ if __name__ == '__main__':
     argparser.add_argument('--optimizer', type=str, default='sgd')
     argparser.add_argument('--lr', default=None)
     argparser.add_argument('--print_progress', type=bool, default=False)
+    argparser.add_argument('--recompute_final_results', type=bool, default=False)
+    argparser.add_argument('--recompute', type=bool, default=False)
 
     args = argparser.parse_args()
 

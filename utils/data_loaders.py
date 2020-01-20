@@ -6,7 +6,7 @@ from torchvision import datasets, transforms
 from sklearn.model_selection import train_test_split
 
         
-AVAILABLE_DATASETS = ['mnist', 'cifar10', 'cifar2']
+AVAILABLE_DATASETS = ['mnist', 'cifar10', 'cifar2', 'cifar2_binary']
 
 
 class CIFAR2(datasets.CIFAR10):
@@ -28,7 +28,7 @@ def _get_mean_and_std(dataset_name):
         return 0.1307, 0.3081
     elif dataset_name == 'cifar10':
         return 0.4734, 0.2516
-    elif dataset_name == 'cifar2':
+    elif dataset_name in ['cifar2', 'cifar2_binary']:
         return 0.4734, 0.2516
     else:
         raise ValueError("unknown dataset: {}".format(dataset_name))
@@ -39,7 +39,7 @@ def _get_dataset_class(dataset_name):
         return datasets.MNIST
     elif dataset_name == 'cifar10':
         return datasets.CIFAR10
-    elif dataset_name == 'cifar2':
+    elif dataset_name in ['cifar2', 'cifar2_binary']:
         return CIFAR2
     else:
         raise ValueError("unknown dataset: {}".format(dataset_name))
@@ -50,7 +50,7 @@ def get_shape(dataset_name):
         return (1, 28, 28), 10
     elif dataset_name == 'cifar10':
         return (3, 32, 32), 10
-    elif dataset_name == 'cifar2':
+    elif dataset_name in ['cifar2', 'cifar2_binary']:
         return (3, 32, 32), 2
     else:
         raise ValueError("unknown dataset: {}".format(dataset_name))
