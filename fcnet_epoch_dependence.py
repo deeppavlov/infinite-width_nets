@@ -43,7 +43,9 @@ def get_optimizer_class_and_default_lr(optimizer_name):
 def get_log_dir():
     log_dir = os.path.join(
         'results', 'epoch_dependence', '{}_{}'.format(args.dataset, args.train_size), 
-        'num_hidden={}_activation={}_bias={}_normalization={}'.format(args.num_hidden, args.activation, args.bias, args.normalization), '{}_lr={}'.format(args.optimizer, args.lr))
+        'num_hidden={}_activation={}_bias={}_normalization={}'.format(
+            args.num_hidden, args.activation, args.bias, args.normalization
+        ), '{}_lr={}_batch_size={}_num_epochs={}'.format(args.optimizer, args.lr, args.batch_size, args.num_epochs))
     return log_dir
 
 
@@ -65,7 +67,14 @@ def main(args):
     
     if args.num_hidden == 1:
         real_widths = [128, 65536]
-        scaling_modes = ['mean_field', 'ntk', 'intermediate_q=0.625', 'intermediate_q=0.75', 'intermediate_q=0.875', 'default']
+        scaling_modes = [
+            'mean_field', 
+            'ntk', 
+            #'intermediate_q=0.625', 
+            'intermediate_q=0.75', 
+            #'intermediate_q=0.875', 
+            'default'
+        ]
         ref_widths = [128]
     elif args.num_hidden == 2:
         real_widths = [16384]
@@ -135,7 +144,7 @@ def main(args):
                         
                         results = results_all[scaling_mode][ref_width][correction_epoch][real_width][seed]
                         
-                        if results is not None and 'model_state_dict' in results and 'model_init_state_dict' in results and not args.recompute:# and (scaling_mode not in ['default']):
+                        if results is not None and 'model_state_dict' in results and 'model_init_state_dict' in results and not args.recompute:
                             if args.recompute_final_results:
                                 model_state_dict, model_init_state_dict = results['model_state_dict'], results['model_init_state_dict']
                             else:
