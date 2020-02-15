@@ -39,19 +39,11 @@ def scale_hyperparams(input_layer, hidden_layers, output_layer,
                       optimizer, width_factor, scaling_mode, epoch, correction_epoch=0):
     
     scaling_mode, q = _normalize_scaling_mode(scaling_mode)
-    #print(scaling_mode, q)
     
     all_except_input_layers = chain(hidden_layers, [output_layer])
-    #hidden_layer_count = _count_layers(hidden_layers)
     
     if optimizer is not None:
         is_gradient_normalized = _test_gradient_normalization(optimizer)
-    
-#     use_bn = False
-#     for layer in hidden_layers:
-#         if isinstance(layer, (nn.BatchNorm1d, nn.BatchNorm2d)):
-#             use_bn = True
-#             break
     
     weight_factor = 1
     lr_factor_input = 1
@@ -83,27 +75,6 @@ def scale_hyperparams(input_layer, hidden_layers, output_layer,
                     lr_factor_output *= width_factor ** (-0.5)
                 else:
                     lr_factor_input *= width_factor ** 0.5
-                    lr_factor_hidden *= 1
-                    lr_factor_output *= width_factor ** (-0.5)
-        
-    elif scaling_mode == 'mean_field_var1':
-        if epoch == 0:
-            weight_factor *= width_factor ** (-0.5)
-            if optimizer is not None:
-                if is_gradient_normalized:
-                    raise NotImplementedError
-                else:
-                    lr_factor_input *= width_factor ** 1.5
-                    lr_factor_hidden *= 1
-                    lr_factor_output *= width_factor ** (-0.5)
-        
-        if correction_epoch is not None and epoch == correction_epoch:
-            weight_factor *= 1
-            if optimizer is not None:
-                if is_gradient_normalized:
-                    raise NotImplementedError
-                else:
-                    lr_factor_input *= width_factor ** (-0.5)
                     lr_factor_hidden *= 1
                     lr_factor_output *= width_factor ** (-0.5)
         
