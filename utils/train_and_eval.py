@@ -114,7 +114,7 @@ def train_and_eval(model, model_init, optimizer, scaling_mode, train_loader, tes
                 test_loss, test_acc = perform_epoch(model, test_loader, device=device, max_batch_count=test_batch_count, loss_name=loss_name)
                 test_losses[epoch] = test_loss
                 test_accs[epoch] = test_acc
-                logits[epoch] = get_logits(model, test_loader_det, max_batch_count=logits_batch_count, device=device, loss_name=loss_name)
+                logits[epoch] = get_logits(model, test_loader_det, max_batch_count=logits_batch_count, device=device)[:100]
                 if print_progress:
                     print('test_loss = {:.4f}; test_acc = {:.2f}'.format(test_loss, test_acc*100))
     
@@ -170,7 +170,7 @@ def train_and_eval(model, model_init, optimizer, scaling_mode, train_loader, tes
                     test_loader_det, device=device
                 )
                 final_var_f_term = np.var(final_logits_term, axis=0)[0]
-                results_decomposition['final_logits'+suffix] = final_logits_term
+                results_decomposition['final_logits'+suffix] = final_logits_term[:100]
                 results_decomposition['final_var_f'+suffix] = final_var_f_term
                 
     with torch.no_grad():
@@ -188,7 +188,8 @@ def train_and_eval(model, model_init, optimizer, scaling_mode, train_loader, tes
         ).cpu().item()
     
     results = {
-        'model_state_dict': model.cpu().state_dict(), 'model_init_state_dict': model_init.cpu().state_dict(),
+        #'model_state_dict': model.cpu().state_dict(), 'model_init_state_dict': model_init.cpu().state_dict(),
+        'model_state_dict': None, 'model_init_state_dict': None,
         
         'train_losses': train_losses, 'train_accs': train_accs,
         'test_losses': test_losses, 'test_accs': test_accs,
@@ -196,11 +197,11 @@ def train_and_eval(model, model_init, optimizer, scaling_mode, train_loader, tes
         
         'final_train_loss': final_train_loss, 'final_train_acc': final_train_acc,
         'final_test_loss': final_test_loss, 'final_test_acc': final_test_acc,
-        'final_logits': final_logits,
+        'final_logits': final_logits[:100],
         
         'init_train_loss': init_train_loss, 'init_train_acc': init_train_acc,
         'init_test_loss': init_test_loss, 'init_test_acc': init_test_acc,
-        'init_logits': init_logits,
+        'init_logits': init_logits[:100],
         
         'input_weight_mean_abs_inc': input_weight_mean_abs_inc,
         'hidden_weight_mean_abs_inc': hidden_weight_mean_abs_inc,

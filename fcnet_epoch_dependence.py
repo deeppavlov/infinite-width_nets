@@ -42,10 +42,8 @@ def get_optimizer_class_and_default_lr(optimizer_name):
 
 def get_log_dir():
     log_dir = os.path.join(
-        'results', 'ref_width_dependence', '{}_{}'.format(args.dataset, args.train_size), 
-        'num_hidden={}_activation={}_bias={}_normalization={}'.format(
-            args.num_hidden, args.activation, args.bias, args.normalization
-        ), '{}_lr={}_batch_size={}_num_epochs={}'.format(args.optimizer, args.lr, args.batch_size, args.num_epochs))
+        'results', 'epoch_dependence', '{}_{}'.format(args.dataset, args.train_size), 
+        'num_hidden={}_activation={}_bias={}_normalization={}'.format(args.num_hidden, args.activation, args.bias, args.normalization), '{}_lr={}'.format(args.optimizer, args.lr))
     return log_dir
 
 
@@ -66,24 +64,15 @@ def main(args):
     lr = float(args.lr)
     
     if args.num_hidden == 1:
-        #real_widths = [32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536]
-        real_widths = [128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536]
-        #real_widths = [8192, 16384, 32768, 65536]
-        scaling_modes = [
-            'mean_field', 
-            'ntk', 
-            #'intermediate_q=0.625', 
-            'intermediate_q=0.75', 
-            #'intermediate_q=0.875', 
-            'default'
-        ]
+        real_widths = [128, 65536]
+        scaling_modes = ['mean_field', 'ntk', 'intermediate_q=0.625', 'intermediate_q=0.75', 'intermediate_q=0.875', 'default']
         ref_widths = [128]
     elif args.num_hidden == 2:
-        real_widths = [128, 256, 512, 1024, 2048, 4096, 8192, 16384]
+        real_widths = [16384]
         scaling_modes = ['mean_field', 'ntk', 'default']
         ref_widths = [128]
     else:
-        real_widths = [128, 256, 512, 1024, 2048, 4096, 8192]
+        real_widths = [8192]
         scaling_modes = ['mean_field', 'ntk', 'default']
         ref_widths = [128]
 
@@ -183,7 +172,7 @@ def main(args):
                         results = train_and_eval(
                             model, model_init, optimizer, scaling_mode, train_loader, test_loader, test_loader_det,
                             corrected_num_epochs, correction_epoch, width_factor=width_factor, 
-                            device=device, print_progress=args.print_progress, binary=binary)
+                            device=device, print_progress=args.print_progress, binary=binary, eval_every=1)
                         
                         if not args.save_models:
                             del results['model_state_dict']
