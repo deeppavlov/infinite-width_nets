@@ -146,7 +146,7 @@ def main(args):
                         
                         results = results_all[scaling_mode][ref_width][correction_epoch][real_width][seed]
                         
-                        if results is not None and 'model_state_dict' in results and 'model_init_state_dict' in results and not args.recompute:# and (scaling_mode not in ['default']):
+                        if results is not None and 'model_state_dict' in results and 'model_init_state_dict' in results and not args.recompute:
                             if args.recompute_final_results:
                                 model_state_dict, model_init_state_dict = results['model_state_dict'], results['model_init_state_dict']
                             else:
