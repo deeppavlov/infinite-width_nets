@@ -66,9 +66,7 @@ def main(args):
     lr = float(args.lr)
     
     if args.num_hidden == 1:
-        #real_widths = [32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536]
         real_widths = [128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536]
-        #real_widths = [8192, 16384, 32768, 65536]
         scaling_modes = [
             'mean_field', 
             'ntk', 
