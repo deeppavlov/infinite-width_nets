@@ -14,7 +14,7 @@ First, perform computations:
     ```
     * Right:
     ```
-    $ python epoch_dependence.py --device=<cuda:0 or cpu> --num_hidden=1 --optimizer=sgd --lr=0.02 --num_epochs=50 --dataset=cifar2_binary --train_size=1000 --batch_size=1000 --activation=lrelu --num_seeds=5  
+    $ python fcnet_epoch_dependence.py --device=<cuda:0 or cpu> --num_hidden=1 --optimizer=sgd --lr=0.02 --num_epochs=50 --dataset=cifar2_binary --train_size=1000 --batch_size=1000 --activation=lrelu --num_seeds=5  
     ```
   * Figure 2:
     * Left:
@@ -47,7 +47,7 @@ First, perform computations:
     ```
     * Top row, center:
     ```
-    $ python epoch_dependence.py --device=<cuda:0 or cpu> --num_hidden=1 --optimizer=sgd --lr=0.02 --num_epochs=50 --dataset=cifar2_binary --train_size=1000 --batch_size=1000 --activation=lrelu --num_seeds=5  
+    $ python fcnet_epoch_dependence.py --device=<cuda:0 or cpu> --num_hidden=1 --optimizer=sgd --lr=0.02 --num_epochs=50 --dataset=cifar2_binary --train_size=1000 --batch_size=1000 --activation=lrelu --num_seeds=5  
     ```
     * Bottom row, left and right:
     ```
@@ -55,7 +55,7 @@ First, perform computations:
     ```
     * Bottom row, center:
     ```
-    $ python epoch_dependence.py --device=<cuda:0 or cpu> --num_hidden=1 --optimizer=sgd --lr=0.0002 --num_epochs=50 --dataset=cifar2_binary --train_size=1000 --batch_size=1000 --activation=lrelu --num_seeds=5  
+    $ python fcnet_epoch_dependence.py --device=<cuda:0 or cpu> --num_hidden=1 --optimizer=sgd --lr=0.0002 --num_epochs=50 --dataset=cifar2_binary --train_size=1000 --batch_size=1000 --activation=lrelu --num_seeds=5  
     ```
   * Figure 4:
     * Top row:
